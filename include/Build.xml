@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xml>
+	<set name="NDLL_NAME" value="hxflac" />
+	<include name="${HXCPP}/build-tool/BuildCommon.xml" />
+
+	<files id="common">
+		<compilerflag value="-Iflac/include" />
+		<compilerflag value="-Iflac/src/libFLAC/include" />
+
+		<compilerflag value="-DFLAC__HAS_OGG=0" />
+		<compilerflag value="-DFLAC__NO_DLL" if="windows" />
+		<compilerflag value="-DFLAC_API_EXPORTS" if="windows" />
+		<compilerflag value="-DFLAC_DEBUG=0" />
+		<compilerflag value="-DHAVE_CONFIG_H=1" />
+
+		<compilerflag value="-D_CRT_SECURE_NO_WARNINGS" if="windows" />
+		<compilerflag value="-D_CRT_NONSTDC_NO_DEPRECATE" if="windows" />
+		<compilerflag value="-DNO_PRECOMPILED_HEADERS" if="windows" />
+		<compilerflag value="-D_WIN32" if="windows" />
+
+		<compilerflag value="-DHAVE_UNISTD_H=1" if="linux || macos" />
+		<compilerflag value="-DHAVE_FCNTL_H=1" if="linux || macos" />
+		<compilerflag value="-DHAVE_SYS_TYPES_H=1" if="linux || macos" />
+		<compilerflag value="-DHAVE_SYS_STAT_H=1" if="linux || macos" />
+
+		<file name="flac/src/libFLAC/bitmath.c" />
+		<file name="flac/src/libFLAC/bitreader.c" />
+		<file name="flac/src/libFLAC/bitwriter.c" />
+		<file name="flac/src/libFLAC/cpu.c" />
+		<file name="flac/src/libFLAC/crc.c" />
+		<file name="flac/src/libFLAC/fixed.c" />
+		<file name="flac/src/libFLAC/float.c" />
+		<file name="flac/src/libFLAC/format.c" />
+		<file name="flac/src/libFLAC/lpc.c" />
+		<file name="flac/src/libFLAC/md5.c" />
+		<file name="flac/src/libFLAC/memory.c" />
+		<file name="flac/src/libFLAC/stream_decoder.c" />
+		<file name="flac/src/libFLAC/stream_encoder.c" />
+		<file name="flac/src/libFLAC/stream_encoder_framing.c" />
+		<file name="flac/src/libFLAC/window.c" />
+
+		<file name="flac/src/libFLAC/metadata_iterators.c" />
+		<file name="flac/src/libFLAC/metadata_object.c" />
+        
+        <file name="flac/src/share/win_utf8_io/win_utf8_io.c" if="windows"/>
+	</files>
+
+	<set name="SLIBEXT" value=".lib" if="windows" />
+	<set name="SLIBEXT" value=".a" unless="windows" />
+	<set name="SLIBEXT" value=".so" if="webos" />
+
+	<set name="DEBUGEXTRA" value="-debug" if="fulldebug" />
+
+	<target
+		id="NDLL"
+		output="${NDLL_NAME}"
+		tool="linker"
+		toolid="${STD_MODULE_LINK}"
+	>
+		<outdir name="../ndll/${BINDIR}" />
+		<ext value=".ndll" if="windows || mac || linux" />
+		<files id="common" />
+	</target>
+
+	<target id="default">
+		<target id="NDLL" />
+	</target>
+</xml>

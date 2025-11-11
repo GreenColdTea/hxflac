@@ -1,0 +1,129 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  buildLinux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+      - name: Install Haxelib
+        run: |  
+          haxelib setup ~/haxelib
+          haxelib install flixel
+          haxelib install lime
+          haxelib install hxcpp
+          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib run lime setup flixel
+          haxelib list
+      - name: Compile Test Project Linux
+        run: haxelib run lime build ${{ github.workspace }}/test/Project.xml linux
+      - name: Publish Linux Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: linuxBuild
+          path: ${{ github.workspace }}/test/export/release/linux/bin
+
+  buildWindows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+      - name: Install Haxelib
+        run: |
+          haxelib setup C:/haxelib
+          haxelib install flixel
+          haxelib install lime
+          haxelib install hxcpp
+          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib run lime setup flixel
+          haxelib list
+      - name: Compile Test Project Windows
+        run: haxelib run lime build ${{ github.workspace }}/test/Project.xml windows
+      - name: Publish Windows Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: windowsBuild
+          path: ${{ github.workspace }}/test/export/release/windows/bin
+
+  buildMac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+
+      - name: Install Haxelib
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install flixel
+          haxelib install lime
+          haxelib install hxcpp
+          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib run lime setup flixel
+          haxelib list
+
+      - name: Compile Test Project Mac
+        run: haxelib run lime build ${{ github.workspace }}/test/Project.xml mac
+      - name: Publish Mac Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: macBuild
+          path: ${{ github.workspace }}/test/export/release/macos/bin
+
+  buildAndroid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@main
+        id: setup-ndk
+        with:
+          ndk-version: r28
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Install Haxelib
+        run: |
+          haxelib setup ~/haxelib
+
+          sudo apt-get install -qq libgl1-mesa-dev libglu1-mesa-dev libpulse-dev g++ g++-multilib gcc-multilib libasound2-dev libx11-dev libxext-dev libxi-dev libxrandr-dev libxinerama-dev
+          curl -LO https://github.com/HaxeFoundation/hxcpp/releases/download/v4.3.66/hxcpp-4.3.66.zip
+          haxelib install ./hxcpp-4.3.66.zip --quiet
+          haxelib install flixel
+          haxelib install lime
+          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib run lime setup android
+          haxelib list
+
+      - name: Setup Lime
+        run: |
+          haxelib run lime setup -alias -y
+          haxelib run lime config JAVA_HOME $JAVA_HOME_17_X64
+          haxelib run lime config ANDROID_SDK $ANDROID_HOME
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_HOME
+          haxelib run lime config ANDROID_SETUP true
+          
+      - name: Compile Test Project Android
+        run: haxelib run lime build ${{ github.workspace }}/test/Project.xml android
+      - name: Publish Android Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: androidBuild
+          path: ${{ github.workspace }}/test/export/release/android/bin

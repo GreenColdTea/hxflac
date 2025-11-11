@@ -1,0 +1,4 @@
+--class-path hxflac
+--cpp test/bin
+--library openfl
+--library flixel

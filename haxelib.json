@@ -1,0 +1,11 @@
+{
+    "name": "hxflac",
+    "url": "https://github.com/GreenColdTea/hxflac",
+    "license": "MIT",
+    "tags": ["flac", "audio", "format", "decoder"],
+    "description": "FLAC audio format support for Haxe",
+    "version": "1.0.0", 
+    "releasenote": "Release",
+    "contributors": ["GreenColdTea"],
+    "dependencies": {}
+}

@@ -21,7 +21,7 @@ jobs:
           haxelib install flixel
           haxelib install lime
           haxelib install hxcpp
-          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib git hxflac https://github.com/GreenColdTea/hxflac
           haxelib run lime setup flixel
           haxelib list
       - name: Compile Test Project Linux
@@ -45,7 +45,7 @@ jobs:
           haxelib install flixel
           haxelib install lime
           haxelib install hxcpp
-          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib git hxflac https://github.com/GreenColdTea/hxflac
           haxelib run lime setup flixel
           haxelib list
       - name: Compile Test Project Windows
@@ -70,7 +70,7 @@ jobs:
           haxelib install flixel
           haxelib install lime
           haxelib install hxcpp
-          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib git hxflac https://github.com/GreenColdTea/hxflac
           haxelib run lime setup flixel
           haxelib list
 
@@ -108,7 +108,7 @@ jobs:
           haxelib install ./hxcpp-4.3.66.zip --quiet
           haxelib install flixel
           haxelib install lime
-          haxelib git hxflac https://github.com/GreenColdTea/justAthing.git
+          haxelib git hxflac https://github.com/GreenColdTea/hxflac
           haxelib run lime setup android
           haxelib list
 

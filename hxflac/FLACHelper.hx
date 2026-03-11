@@ -63,13 +63,8 @@ class FLACHelper {
             metadata.track = safeConvertString(track);
             metadata.comment = safeConvertString(comment);
             
-            freeNativeString(title);
-            freeNativeString(artist);
-            freeNativeString(album);
-            freeNativeString(genre);
-            freeNativeString(year);
-            freeNativeString(track);
-            freeNativeString(comment);
+            for (meta in [title, artist, album, genre, year, track, comment])
+                freeNativeString(meta);
             
             return metadata;
             
@@ -81,8 +76,7 @@ class FLACHelper {
     
     public static function getMetadataFromFile(file:String):FLACMetadata {
         try {
-            final byteArray = Assets.getBytes(file);
-            final bytes = Bytes.ofData(byteArray);
+            final bytes = #if openfl Bytes.ofData(Assets.getBytes(file)) #elseif sys sys.io.File.getBytes(file) #else null #end;
             return getMetadata(bytes);
         } catch (e:Dynamic) {
             trace('FLACHelper: Failed to load file for metadata: $e');

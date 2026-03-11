@@ -21,10 +21,10 @@ class FLACConverter
             var sampleValue:Int = 0;
             switch(bitsPerSample) {    
                 case 24:
-                    var pos = i * 3;
-                    var b1 = data.get(pos);
-                    var b2 = data.get(pos + 1);
-                    var b3 = data.get(pos + 2);
+                    final pos = i * 3;
+                    final b1 = data.get(pos);
+                    final b2 = data.get(pos + 1);
+                    final b3 = data.get(pos + 2);
                     sampleValue = b1 | (b2 << 8) | (b3 << 16);
                     if (sampleValue & 0x800000 != 0) sampleValue |= 0xFF000000;
                     sampleValue = sampleValue >> 8;

@@ -8,10 +8,10 @@ import openfl.utils.ByteArray;
 
 class FLACConverter
 {
-    public static inline function getBytesPerSample(bitsPerSample:Int):Int
+    public static inline extern function getBytesPerSample(bitsPerSample:Int):Int
         return Std.int((bitsPerSample + 7) / 8);
 
-    public static inline function sizeTToInt(value:cpp.SizeT, label:String):Int {
+    public static inline extern function sizeTToInt(value:cpp.SizeT, label:String):Int {
         final intValue:Int = cast value;
         if (intValue < 0) {
             throw 'FLACHelper: $label overflowed Int';
@@ -19,7 +19,7 @@ class FLACConverter
         return intValue;
     }
 
-    public static inline function u32ToInt(value:cpp.UInt32, label:String):Int {
+    public static inline extern function u32ToInt(value:cpp.UInt32, label:String):Int {
         final intValue:Int = cast value;
         if (intValue < 0) {
             throw 'FLACHelper: $label overflowed Int';
@@ -28,7 +28,7 @@ class FLACConverter
     }
     
     #if openfl
-    public static inline function convertTo16Bit(data:Bytes, bitsPerSample:Int):ByteArray {
+    public static inline extern function convertTo16Bit(data:Bytes, bitsPerSample:Int):ByteArray {
         var result = new ByteArray();
         var bytesPerSample = getBytesPerSample(bitsPerSample);
         var sampleCount = Std.int(data.length / bytesPerSample);

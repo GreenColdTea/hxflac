@@ -77,6 +77,8 @@
 		<compilerflag value="-I${hxflac_folder}/flac/src/libFLAC/include" />
 
 		<compilerflag value="-D_CRT_SECURE_NO_WARNINGS" if="windows" />
+		
+		<set name="HXCPP_M64" value="1" />
 	</files>
 
 	<files id="__main__">

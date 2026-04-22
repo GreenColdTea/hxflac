@@ -5,7 +5,7 @@
     "tags": ["flac", "audio", "format", "decoder"],
     "description": "FLAC audio format support for Haxe",
     "version": "1.1.0", 
-    "releasenote": "Added streaming audio support for OpenFL and Flixel, FLAC decoder rewrite and various bug fixes.",
+    "releasenote": "Added streamed audio support for OpenFL and Flixel, FLAC decoder rewrite and various bug fixes.",
     "contributors": ["GreenColdTea"],
     "dependencies": {}
 }

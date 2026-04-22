@@ -264,13 +264,13 @@ class FLACHelper {
     #end
 
     #if flixel
-    public static function toFlxSound(bytes:Bytes, looped:Bool = false, autoDestroy:Bool = false, ?onComplete:Void->Void, streamed:Bool = false):FlxSound {
-        final sound = streamed ? toOpenFLStreamed(bytes) : toOpenFL(bytes, false);
+    public static function toFlxSound(bytes:Bytes, looped:Bool = false, autoDestroy:Bool = false, ?onComplete:Void->Void):FlxSound {
+        final sound = toOpenFL(bytes, false);
         return sound != null ? new FlxSound().loadEmbedded(sound, looped, autoDestroy, onComplete) : null;
     }
 
-    public static function toFlxSoundFromFile(file:String, looped:Bool = false, autoDestroy:Bool = false, ?onComplete:Void->Void, streamed:Bool = false):FlxSound {
-        final sound = toOpenFLFromFile(file, streamed);
+    public static function toFlxSoundFromFile(file:String, looped:Bool = false, autoDestroy:Bool = false, ?onComplete:Void->Void):FlxSound {
+        final sound = toOpenFLFromFile(file, false);
         return sound != null ? new FlxSound().loadEmbedded(sound, looped, autoDestroy, onComplete) : null;
     }
     #end

@@ -6,23 +6,36 @@ import flixel.sound.FlxSound;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import flixel.group.FlxGroup.FlxTypedGroup;
+import flixel.input.keyboard.FlxKey;
 
 import hxflac.FLACHelper;
 import hxflac.FLACMetadata;
+import hxflac.flixel.FlxStreamedSound;
+import sys.io.File;
 
-class PlayState extends FlxState {
+class PlayState extends FlxState 
+{
     var metadataTexts:FlxTypedGroup<FlxText>;
     var metadata:FLACMetadata;
-	final songPath:String = "assets/music/waera - harinezumi.flac";
+    final songPath:String = "assets/music/waera - harinezumi.flac";
+
+    var normalSound:FlxSound;
+    var streamedSound:FlxStreamedSound;
+    var isStreamingMode:Bool = false;
+
+    var modeText:FlxText;
+    var controlText:FlxText;
     
-    override public function create() {
+    override public function create() 
+    {
         var time:Float = Sys.time();
 
-        var sound:FlxSound = FLACHelper.toFlxSoundFromFile(songPath);
-        FlxG.sound.list.add(sound).play();
-        
+        normalSound = FLACHelper.toFlxSoundFromFile(songPath);
+        FlxG.sound.list.add(normalSound);
+
+        streamedSound = null;
+
         metadata = FLACHelper.getMetadataFromFile(songPath);
-        
         trace("Loaded in " + (Sys.time() - time) + " seconds");
         
         metadataTexts = new FlxTypedGroup<FlxText>();
@@ -31,9 +44,143 @@ class PlayState extends FlxState {
         displayMetadata();
         displayVersionInfo();
 
-		super.create();
+        modeText = new FlxText(10, FlxG.height - 80, 300, "", 12);
+        modeText.setFormat(null, 12, FlxColor.YELLOW);
+        add(modeText);
+
+        controlText = new FlxText(10, FlxG.height - 45, 400, 
+            "[S]witch mode | [P]ause/Resume | [R]estart", 10);
+        controlText.setFormat(null, 10, FlxColor.GRAY);
+        add(controlText);
+
+        setNormalMode();
+        
+        super.create();
     }
-    
+
+    override public function update(elapsed:Float) 
+    {
+        super.update(elapsed);
+
+        if (FlxG.keys.justPressed.S) 
+        {
+            if (isStreamingMode)
+                setNormalMode();
+            else
+                setStreamingMode();
+        }
+
+        if (FlxG.keys.justPressed.P) 
+        {
+            if (isStreamingMode) 
+            {
+                if (streamedSound != null) 
+                {
+                    if (streamedSound.playing)
+                        streamedSound.pause();
+                    else
+                        streamedSound.resume();
+                }
+            } 
+            else 
+            {
+                if (normalSound != null) 
+                {
+                    if (normalSound.playing)
+                        normalSound.pause();
+                    else
+                        normalSound.play();
+                }
+            }
+        }
+
+        if (FlxG.keys.justPressed.R) 
+        {
+            if (isStreamingMode) 
+            {
+                if (streamedSound != null)
+                    streamedSound.restart();
+            } 
+            else 
+            {
+                if (normalSound != null)
+                    normalSound.play(true);
+            }
+        }
+
+        updateModeDisplay();
+    }
+
+    function setNormalMode():Void 
+    {
+        if (streamedSound != null) 
+        {
+            streamedSound.stop();
+            streamedSound.destroy();
+            streamedSound = null;
+        }
+
+        isStreamingMode = false;
+
+        normalSound.stop();
+        normalSound.play();
+
+        updateModeDisplay();
+    }
+
+    function setStreamingMode():Void 
+    {
+        normalSound.stop();
+
+        if (streamedSound == null) 
+        {
+            var bytes = File.getBytes(songPath);
+            streamedSound = new FlxStreamedSound(bytes, false);
+            streamedSound.play();
+            FlxG.sound.list.add(streamedSound);
+        } 
+        else 
+        {
+            streamedSound.stop();
+            streamedSound.play(true);
+        }
+
+        isStreamingMode = true;
+        updateModeDisplay();
+    }
+
+    function updateModeDisplay():Void 
+    {
+        if (isStreamingMode) 
+        {
+            if (streamedSound != null) 
+                modeText.text = "Mode: STREAMED | Playing: " + streamedSound.playing + 
+                                " | Time: " + Math.round(streamedSound.time) + "ms";
+            else
+                modeText.text = "Mode: STREAMED (error)";
+        } 
+        else 
+        {
+            if (normalSound != null)
+                modeText.text = "Mode: NORMAL (FlxSound) | Playing: " + normalSound.playing +
+                                " | Time: " + Math.round(normalSound.time) + "ms";
+            else
+                modeText.text = "Mode: NORMAL (error)";
+        }
+    }
+
+    override public function destroy():Void 
+    {
+        if (normalSound != null) 
+        {
+            normalSound.stop();
+            normalSound.destroy();
+        }
+        if (streamedSound != null) 
+            streamedSound.destroy();
+        super.destroy();
+    }
+
     function displayMetadata():Void {
         var startY:Float = 50;
         var lineHeight:Float = 30;
@@ -72,7 +219,7 @@ class PlayState extends FlxState {
         separator.setFormat(null, 14, FlxColor.GRAY);
         metadataTexts.add(separator);
 
-        startY += lineHeight + 10;
+        startY += lineHeight - 25;
         
         displayFileInfo(startY);
     }

@@ -7,7 +7,8 @@ import openfl.events.SampleDataEvent;
 import openfl.media.Sound;
 import openfl.utils.ByteArray;
 
-class FLACStreamedSound extends Sound {
+class FLACStreamedSound extends Sound
+{
     static inline final TARGET_FRAMES:Int = 2048;
     static inline final OUTPUT_SAMPLE_RATE:Int = 44100;
     static inline final NATIVE_READ_CHUNK:Int = 16384;
@@ -32,6 +33,8 @@ class FLACStreamedSound extends Sound {
     public var finished(default, null):Bool = false;
     public var looped:Bool = false;
 
+    public var volume:Float = 1.0;
+
     public var channels(get, never):Int;
     public var bitsPerSample(get, never):Int;
     public var playbackTime(get, never):Float;
@@ -40,12 +43,12 @@ class FLACStreamedSound extends Sound {
     inline function get_bitsPerSample():Int return _bitsPerSample;
     inline function get_playbackTime():Float return playbackFrames / OUTPUT_SAMPLE_RATE;
 
-    public function new(bytes:Bytes, chunkSize:Int = NATIVE_READ_CHUNK) {
+    public function new(bytes:Bytes, chunkSize:Int = NATIVE_READ_CHUNK)
+    {
         super();
 
-        if (bytes == null || bytes.length == 0) {
+        if (bytes == null || bytes.length == 0)
             throw "FLACStreamedSound: empty source bytes";
-        }
 
         sourceBytes = bytes;
         tempBuffer = Bytes.alloc(chunkSize);
@@ -55,14 +58,14 @@ class FLACStreamedSound extends Sound {
         addEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
     }
 
-    function openStreamFromSource():Void {
+    function openStreamFromSource():Void
+    {
         final data = sourceBytes.getData();
         final dataPointer:cpp.ConstPointer<cpp.UInt8> = untyped __cpp__('(const unsigned char*){0}->getBase()', data);
 
         handle = FLAC._streamOpen(dataPointer, cast sourceBytes.length);
-        if (handle < 0) {
+        if (handle < 0)
             throw "FLACStreamedSound: failed to open stream";
-        }
 
         var sr:cpp.UInt32 = cast 0;
         var ch:cpp.UInt32 = cast 0;
@@ -75,7 +78,8 @@ class FLACStreamedSound extends Sound {
             cpp.RawPointer.addressOf(bps)
         );
 
-        if (!ok) {
+        if (!ok)
+        {
             FLAC._streamClose(handle);
             handle = -1;
             throw "FLACStreamedSound: failed to get stream info";
@@ -85,15 +89,18 @@ class FLACStreamedSound extends Sound {
         _channels = FLACConverter.u32ToInt(ch, "channels");
         _bitsPerSample = FLACConverter.u32ToInt(bps, "bitsPerSample");
 
-        if (_sampleRate <= 0 || _channels <= 0 || _bitsPerSample <= 0) {
+        if (_sampleRate <= 0 || _channels <= 0 || _bitsPerSample <= 0)
+        {
             FLAC._streamClose(handle);
             handle = -1;
             throw 'FLACStreamedSound: invalid stream info sr=${_sampleRate}, ch=${_channels}, bps=${_bitsPerSample}';
         }
     }
 
-    public function resetStream():Void {
-        if (handle >= 0) {
+    public function resetStream():Void
+    {
+        if (handle >= 0)
+        {
             FLAC._streamClose(handle);
             handle = -1;
         }
@@ -109,25 +116,32 @@ class FLACStreamedSound extends Sound {
         openStreamFromSource();
     }
 
-    function onSampleData(event:SampleDataEvent):Void {
-        if (closed || handle < 0) {
+    function onSampleData(event:SampleDataEvent):Void
+    {
+        if (closed || handle < 0)
+        {
             writeSilence(event.data, TARGET_FRAMES);
             return;
         }
 
         var framesWritten = 0;
 
-        while (framesWritten < TARGET_FRAMES) {
-            if (needsMoreInputFrames() && !streamEnded) {
+        while (framesWritten < TARGET_FRAMES)
+        {
+            if (needsMoreInputFrames() && !streamEnded)
                 fillPendingFromNative();
-            }
 
-            if (!hasEnoughInputForOutputFrame()) {
-                if (streamEnded && pendingAvailableBytes() == 0) {
-                    if (looped) {
+            if (!hasEnoughInputForOutputFrame())
+            {
+                if (streamEnded && pendingAvailableBytes() == 0)
+                {
+                    if (looped)
+                    {
                         resetStream();
                         continue;
-                    } else {
+                    }
+                    else
+                    {
                         finished = true;
                     }
                 }
@@ -141,12 +155,17 @@ class FLACStreamedSound extends Sound {
                 TARGET_FRAMES - framesWritten
             );
 
-            if (produced <= 0) {
-                if (streamEnded && pendingAvailableBytes() == 0) {
-                    if (looped) {
+            if (produced <= 0)
+            {
+                if (streamEnded && pendingAvailableBytes() == 0)
+                {
+                    if (looped)
+                    {
                         resetStream();
                         continue;
-                    } else {
+                    }
+                    else
+                    {
                         finished = true;
                     }
                 }
@@ -160,21 +179,25 @@ class FLACStreamedSound extends Sound {
         }
     }
 
-    function fillPendingFromNative():Void {
-        if (closed || handle < 0 || streamEnded) {
+    function fillPendingFromNative():Void
+    {
+        if (closed || handle < 0 || streamEnded)
             return;
-        }
 
         final tempData = tempBuffer.getData();
         final outPointer:cpp.RawPointer<cpp.UInt8> = untyped __cpp__('(unsigned char*){0}->getBase()', tempData);
         final bytesRead = FLAC._streamRead(handle, outPointer, cast tempBuffer.length);
         final readInt = FLACConverter.sizeTToInt(bytesRead, "bytesRead");
 
-        if (readInt <= 0) {
-            if (FLAC._streamFailed(handle)) {
+        if (readInt <= 0)
+        {
+            if (FLAC._streamFailed(handle))
+            {
                 trace("FLACStreamedSound: stream failed");
                 close();
-            } else if (FLAC._streamFinished(handle)) {
+            }
+            else if (FLAC._streamFinished(handle))
+            {
                 streamEnded = true;
             }
             return;
@@ -182,33 +205,33 @@ class FLACStreamedSound extends Sound {
 
         appendPending(tempBuffer, readInt);
 
-        if (FLAC._streamFinished(handle)) {
+        if (FLAC._streamFinished(handle))
             streamEnded = true;
-        }
     }
 
-    inline function bytesPerSample():Int {
-        return FLACConverter.getBytesPerSample(_bitsPerSample);
+    inline function bytesPerFrame():Int
+    {
+        return FLACConverter.getBytesPerSample(_bitsPerSample) * _channels;
     }
 
-    inline function bytesPerFrame():Int {
-        return bytesPerSample() * _channels;
-    }
-
-    function pendingAvailableBytes():Int {
+    function pendingAvailableBytes():Int
+    {
         return pendingLength - pendingReadOffset;
     }
 
-    function pendingAvailableFrames():Int {
+    function pendingAvailableFrames():Int
+    {
         final bpf = bytesPerFrame();
         if (bpf <= 0) return 0;
         return Std.int(pendingAvailableBytes() / bpf);
     }
 
-    function compactPending():Void {
+    function compactPending():Void
+    {
         if (pendingReadOffset == 0) return;
 
-        if (pendingReadOffset >= pendingLength) {
+        if (pendingReadOffset >= pendingLength)
+        {
             pendingReadOffset = 0;
             pendingLength = 0;
             return;
@@ -221,24 +244,27 @@ class FLACStreamedSound extends Sound {
         pendingReadOffset = 0;
     }
 
-    function ensurePendingCapacity(required:Int):Void {
+    function ensurePendingCapacity(required:Int):Void
+    {
         if (pendingPCM.length >= required) return;
 
         var newSize = pendingPCM.length;
-        while (newSize < required) {
+        while (newSize < required)
             newSize *= 2;
-        }
 
         final newBytes = Bytes.alloc(newSize);
 
-        if (pendingAvailableBytes() > 0) {
+        if (pendingAvailableBytes() > 0)
+        {
             final oldData = pendingPCM.getData();
             final newData = newBytes.getData();
             final available = pendingAvailableBytes();
             untyped __cpp__('memcpy({0}->getBase(), {1}->getBase() + {2}, {3})', newData, oldData, pendingReadOffset, available);
             pendingLength = available;
             pendingReadOffset = 0;
-        } else {
+        }
+        else
+        {
             pendingLength = 0;
             pendingReadOffset = 0;
         }
@@ -246,7 +272,8 @@ class FLACStreamedSound extends Sound {
         pendingPCM = newBytes;
     }
 
-    function appendPending(srcBytes:Bytes, srcLength:Int):Void {
+    function appendPending(srcBytes:Bytes, srcLength:Int):Void
+    {
         compactPending();
 
         final required = pendingLength + srcLength;
@@ -258,22 +285,27 @@ class FLACStreamedSound extends Sound {
         pendingLength += srcLength;
     }
 
-    inline function needsMoreInputFrames():Bool {
+    inline function needsMoreInputFrames():Bool
+    {
         return pendingAvailableFrames() < 4;
     }
 
-    inline function hasEnoughInputForOutputFrame():Bool {
+    inline function hasEnoughInputForOutputFrame():Bool
+    {
         return pendingAvailableFrames() >= 2;
     }
 
-    inline function clampSample(v:Float):Float {
+    inline function clampSample(v:Float):Float
+    {
         if (v > 1.0) return 1.0;
         if (v < -1.0) return -1.0;
         return v;
     }
 
-    inline function readSampleAsFloat(bytes:Bytes, pos:Int, bitsPerSample:Int):Float {
-        return switch (bitsPerSample) {
+    inline function readSampleAsFloat(bytes:Bytes, pos:Int, bitsPerSample:Int):Float
+    {
+        return switch (bitsPerSample)
+        {
             case 16:
                 var lo = bytes.get(pos);
                 var hi = bytes.get(pos + 1);
@@ -294,19 +326,21 @@ class FLACStreamedSound extends Sound {
         }
     }
 
-    function mixFrameToStereo(bytes:Bytes, framePos:Int):{ l:Float, r:Float } {
-        final bps = bytesPerSample();
+    function mixFrameToStereo(bytes:Bytes, framePos:Int):{ l:Float, r:Float }
+    {
+        final bps = FLACConverter.getBytesPerSample(_bitsPerSample);
 
-        if (_channels <= 0) {
+        if (_channels <= 0)
             return { l: 0.0, r: 0.0 };
-        }
 
-        if (_channels == 1) {
+        if (_channels == 1)
+        {
             final s = readSampleAsFloat(bytes, framePos, _bitsPerSample);
             return { l: s, r: s };
         }
 
-        if (_channels == 2) {
+        if (_channels == 2)
+        {
             return {
                 l: readSampleAsFloat(bytes, framePos, _bitsPerSample),
                 r: readSampleAsFloat(bytes, framePos + bps, _bitsPerSample)
@@ -318,12 +352,16 @@ class FLACStreamedSound extends Sound {
         var countL = 0;
         var countR = 0;
 
-        for (ch in 0..._channels) {
+        for (ch in 0..._channels)
+        {
             final s = readSampleAsFloat(bytes, framePos + ch * bps, _bitsPerSample);
-            if ((ch & 1) == 0) {
+            if ((ch & 1) == 0)
+            {
                 l += s;
                 countL++;
-            } else {
+            }
+            else
+            {
                 r += s;
                 countR++;
             }
@@ -335,20 +373,21 @@ class FLACStreamedSound extends Sound {
         return { l: clampSample(l), r: clampSample(r) };
     }
 
-    function writePendingToSampleDataUniversal(target:ByteArray, maxFrames:Int):Int {
-        if (maxFrames <= 0) {
+    function writePendingToSampleDataUniversal(target:ByteArray, maxFrames:Int):Int
+    {
+        if (maxFrames <= 0)
             return 0;
-        }
 
         final bpf = bytesPerFrame();
-        if (bpf <= 0) {
+        if (bpf <= 0)
             return 0;
-        }
 
         var framesWritten = 0;
         final step = _sampleRate / OUTPUT_SAMPLE_RATE;
+        final finalVolume = clampSample(volume);
 
-        while (framesWritten < maxFrames) {
+        while (framesWritten < maxFrames)
+        {
             final availableFrames = pendingAvailableFrames();
             if (availableFrames < 2) break;
 
@@ -363,8 +402,8 @@ class FLACStreamedSound extends Sound {
             final f0 = mixFrameToStereo(pendingPCM, p0);
             final f1 = mixFrameToStereo(pendingPCM, p1);
 
-            final left = clampSample(f0.l + (f1.l - f0.l) * frac);
-            final right = clampSample(f0.r + (f1.r - f0.r) * frac);
+            final left = clampSample((f0.l + (f1.l - f0.l) * frac) * finalVolume);
+            final right = clampSample((f0.r + (f1.r - f0.r) * frac) * finalVolume);
 
             target.writeFloat(left);
             target.writeFloat(right);
@@ -374,7 +413,8 @@ class FLACStreamedSound extends Sound {
         }
 
         final consumedFrames = Std.int(resamplePosition);
-        if (consumedFrames > 0) {
+        if (consumedFrames > 0)
+        {
             pendingReadOffset += consumedFrames * bpf;
             resamplePosition -= consumedFrames;
             compactPending();
@@ -383,20 +423,54 @@ class FLACStreamedSound extends Sound {
         return framesWritten;
     }
 
-    function writeSilence(target:ByteArray, frames:Int):Void {
-        for (i in 0...frames) {
+    function writeSilence(target:ByteArray, frames:Int):Void
+    {
+        for (i in 0...frames)
+        {
             target.writeFloat(0);
             target.writeFloat(0);
         }
     }
 
-    override public function close():Void {
+    public function seekMilliseconds(ms:Float):Void
+    {
+        resetStream();
+
+        if (ms <= 0)
+            return;
+
+        final targetFrames = Std.int((ms / 1000.0) * _sampleRate);
+
+        var skippedFrames = 0;
+        final bpf = bytesPerFrame();
+
+        final tempData = tempBuffer.getData();
+        final outPointer:cpp.RawPointer<cpp.UInt8> =
+            untyped __cpp__('(unsigned char*){0}->getBase()', tempData);
+
+        while (skippedFrames < targetFrames && handle >= 0 && !streamEnded)
+        {
+            final bytesRead = FLAC._streamRead(handle, outPointer, cast tempBuffer.length);
+            final readInt = FLACConverter.sizeTToInt(bytesRead, "bytesRead");
+
+            if (readInt <= 0)
+                break;
+
+            skippedFrames += Std.int(readInt / bpf);
+        }
+
+        playbackFrames = Std.int((ms / 1000.0) * OUTPUT_SAMPLE_RATE);
+    }
+
+    override public function close():Void
+    {
         if (closed) return;
 
         closed = true;
         removeEventListener(SampleDataEvent.SAMPLE_DATA, onSampleData);
 
-        if (handle >= 0) {
+        if (handle >= 0)
+        {
             FLAC._streamClose(handle);
             handle = -1;
         }

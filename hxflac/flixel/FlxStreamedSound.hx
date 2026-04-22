@@ -1,135 +1,286 @@
 package hxflac.flixel;
 
+import flixel.FlxG;
+import flixel.sound.FlxSound;
 import haxe.io.Bytes;
 import hxflac.openfl.FLACStreamedSound;
-import openfl.media.SoundChannel;
-import openfl.media.SoundTransform;
+import openfl.events.Event;
 
-class FlxStreamedSound {
-    public var streamedSound(default, null):FLACStreamedSound;
-    public var channel(default, null):SoundChannel;
+class FlxStreamedSound extends FlxSound
+{
+    var _stream:FLACStreamedSound;
+    var _bytes:Bytes;
+    var _chunkSize:Int = 65536;
 
-    public var looped:Bool = false;
-    public var volume:Float = 1.0;
-    public var pan:Float = 0.0;
-    public var playing(default, null):Bool = false;
-    public var paused(default, null):Bool = false;
-    public var time(default, null):Float = 0.0;
+    public function new(?bytes:Bytes, looped:Bool = false, chunkSize:Int = 65536)
+    {
+        super();
 
-    var sourceBytes:Bytes;
-    var pauseTimeMs:Float = 0.0;
-
-    public function new(bytes:Bytes, looped:Bool = false) {
-        sourceBytes = bytes;
         this.looped = looped;
+        _chunkSize = chunkSize;
 
-        streamedSound = new FLACStreamedSound(bytes);
-        streamedSound.looped = looped;
+        if (bytes != null)
+            loadStreamedFlac(bytes, looped, false, null, chunkSize);
     }
 
-    public function play(?forceRestart:Bool = false, ?startTime:Float = 0.0):Void {
-        stopChannelOnly();
-
-        if (forceRestart || startTime > 0) {
-            recreateSound();
+    public function loadStreamedFlac(bytes:Bytes, looped:Bool = false, autoDestroy:Bool = false, ?onComplete:()->Void, chunkSize:Int = 65536):FlxStreamedSound
+    {
+        if (bytes == null)
+        {
+            FlxG.log.error("Expected FLAC bytes, got null");
+            return this;
         }
 
-        channel = streamedSound.play();
-        applyTransform();
+        cleanup(true);
 
-        playing = channel != null;
-        paused = false;
-        time = startTime;
+        _bytes = bytes;
+        _chunkSize = chunkSize;
+        _stream = new FLACStreamedSound(_bytes, _chunkSize);
+
+        this.looped = looped;
+        this.autoDestroy = autoDestroy;
+        this.onComplete = onComplete;
+
+        _length = _stream.length * 1000;
+        endTime = _length;
+        exists = true;
+        active = false;
+        _paused = false;
+        _time = 0;
+
+        updateTransform();
+        return this;
     }
 
-    public function pause():Void {
-        if (!playing) return;
+    public var paused(get, never):Bool;
+    inline function get_paused():Bool return _paused;
 
-        time = streamedSound.playbackTime * 1000.0;
-        pauseTimeMs = time;
-        stopChannelOnly();
+    override public function play(forceRestart = false, startTime = 0.0, ?endTime:Float):FlxSound
+    {
+        if (!exists || _stream == null)
+            return this;
 
-        playing = false;
-        paused = true;
+        if (forceRestart)
+        {
+            restart(startTime);
+            this.endTime = endTime;
+            return this;
+        }
+
+        if (_channel != null)
+            return this;
+
+        if (_paused)
+            resume();
+        else
+        {
+            loopCount = 0;
+            startSound(startTime);
+        }
+
+        this.endTime = endTime;
+        return this;
     }
 
-    public function resume():Void {
-        if (!paused) return;
+    public function restart(?startTime:Float = 0):FlxStreamedSound
+    {
+        if (_stream == null)
+            return this;
 
-        recreateSound();
-        channel = streamedSound.play();
-        applyTransform();
+        if (_channel != null)
+        {
+            _channel.removeEventListener(Event.SOUND_COMPLETE, stopped);
+            _channel.stop();
+            _channel = null;
+        }
 
-        playing = channel != null;
-        paused = false;
-        time = pauseTimeMs;
+        _paused = false;
+        _time = startTime;
+        loopCount = 0;
+        startSound(startTime);
+
+        return this;
     }
 
-    public function stop():Void {
-        stopChannelOnly();
+    override public function resume():FlxSound
+    {
+        if (_paused && _stream != null)
+            startSound(_time);
 
-        playing = false;
-        paused = false;
-        pauseTimeMs = 0;
-        time = 0;
+        return this;
+    }
 
-        if (streamedSound != null) {
-            streamedSound.resetStream();
+    override public function pause():FlxSound
+    {
+        if (_channel == null || _stream == null)
+            return this;
+
+        _time = _stream.playbackTime * 1000;
+        _paused = true;
+        cleanup(false, false);
+        return this;
+    }
+
+    override public function update(elapsed:Float):Void
+    {
+        if (_channel == null || _stream == null || _paused)
+            return;
+
+        _time = _stream.playbackTime * 1000;
+
+        updateProximity();
+        updateTransform();
+
+        if (endTime != null && _time >= endTime)
+            stopped();
+    }
+
+    override function updateTransform():Void
+    {
+        if (_transform == null)
+            return;
+
+        final vol = calcTransformVolume();
+
+        if (_stream != null)
+            _stream.volume = vol;
+
+        if (_channel != null)
+            _channel.soundTransform = _transform;
+
+        amplitudeLeft = 0;
+        amplitudeRight = 0;
+        amplitude = 0;
+    }
+
+    override function startSound(StartTime:Float):Void
+    {
+        if (_stream == null)
+            return;
+
+        _time = StartTime;
+        _paused = false;
+
+        _stream.seekMilliseconds(StartTime);
+        _channel = _stream.play(0, 0, _transform);
+
+        if (_channel != null)
+        {
+            _channel.addEventListener(Event.SOUND_COMPLETE, stopped);
+            active = true;
+            updateTransform();
+        }
+        else
+        {
+            exists = false;
+            active = false;
         }
     }
 
-    public function update(elapsed:Float):Void {
-        if (channel != null) {
-            applyTransform();
+    override function stopped(?_):Void
+    {
+        if (onComplete != null)
+            onComplete();
+
+        if (looped && (loopUntil == -1 || loopCount < loopUntil))
+        {
+            loopCount++;
+            cleanup(false, false);
+            startSound(loopTime);
+        }
+        else
+        {
+            _time = 0;
+            cleanup(autoDestroy, false);
+        }
+    }
+
+    override function cleanup(destroySound:Bool, resetPosition:Bool = true):Void
+    {
+        if (_channel != null)
+        {
+            _channel.removeEventListener(Event.SOUND_COMPLETE, stopped);
+            _channel.stop();
+            _channel = null;
         }
 
-        if (playing && streamedSound != null) {
-            time = streamedSound.playbackTime * 1000.0;
-        }
+        active = false;
 
-        if (playing && streamedSound != null && streamedSound.finished) {
-            if (looped) {
-                streamedSound.resetStream();
-                channel = streamedSound.play();
-                applyTransform();
-            } else {
-                playing = false;
-                stopChannelOnly();
+        if (destroySound)
+        {
+            if (_stream != null)
+            {
+                _stream.close();
+                _stream = null;
             }
+
+            _bytes = null;
+            exists = false;
+        }
+
+        if (resetPosition)
+        {
+            _time = 0;
+            _paused = false;
+            loopCount = 0;
         }
     }
 
-    public function destroy():Void {
-        stopChannelOnly();
-
-        if (streamedSound != null) {
-            streamedSound.close();
-            streamedSound = null;
+    override function onFocus():Void
+    {
+        if (_resumeOnFocus)
+        {
+            _resumeOnFocus = false;
+            resume();
         }
-
-        sourceBytes = null;
     }
 
-    inline function applyTransform():Void {
-        if (channel == null) return;
-        channel.soundTransform = new SoundTransform(volume, pan);
+    override function onFocusLost():Void
+    {
+        _resumeOnFocus = !_paused && _channel != null;
+        pause();
     }
 
-    function recreateSound():Void {
-        stopChannelOnly();
-
-        if (streamedSound != null) {
-            streamedSound.close();
+    override public function destroy():Void
+    {
+        if (_channel != null)
+        {
+            _channel.removeEventListener(Event.SOUND_COMPLETE, stopped);
+            _channel.stop();
+            _channel = null;
         }
 
-        streamedSound = new FLACStreamedSound(sourceBytes);
-        streamedSound.looped = looped;
+        if (_stream != null)
+        {
+            _stream.close();
+            _stream = null;
+        }
+
+        _bytes = null;
+
+        super.destroy();
     }
 
-    function stopChannelOnly():Void {
-        if (channel != null) {
-            channel.stop();
-            channel = null;
+    public function seek(time:Float):FlxStreamedSound
+    {
+        if (_stream == null)
+        {
+            _time = time;
+            return this;
         }
+
+        if (_channel != null && !_paused)
+        {
+            _channel.removeEventListener(Event.SOUND_COMPLETE, stopped);
+            _channel.stop();
+            _channel = null;
+            startSound(time);
+        }
+        else
+        {
+            _time = time;
+        }
+
+        return this;
     }
 }

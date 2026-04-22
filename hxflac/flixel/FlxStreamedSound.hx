@@ -74,7 +74,9 @@ class FlxStreamedSound extends FlxSound
             resume();
         else
         {
+            #if (flixel >= "6.2.0")
             loopCount = 0;
+            #end
             startSound(startTime);
         }
 
@@ -96,7 +98,9 @@ class FlxStreamedSound extends FlxSound
 
         _paused = false;
         _time = startTime;
+        #if (flixel >= "6.2.0")
         loopCount = 0;
+        #end
         startSound(startTime);
 
         return this;
@@ -128,7 +132,9 @@ class FlxStreamedSound extends FlxSound
 
         _time = _stream.playbackTime * 1000;
 
+        #if (flixel >= "6.2.0")
         updateProximity();
+        #end
         updateTransform();
 
         if (endTime != null && _time >= endTime)
@@ -182,9 +188,11 @@ class FlxStreamedSound extends FlxSound
         if (onComplete != null)
             onComplete();
 
-        if (looped && (loopUntil == -1 || loopCount < loopUntil))
+        if (looped #if (flixel >= "6.2.0") && (loopUntil == -1 || loopCount < loopUntil) #end)
         {
+            #if (flixel >= "6.2.0")
             loopCount++;
+            #end
             cleanup(false, false);
             startSound(loopTime);
         }
@@ -222,7 +230,9 @@ class FlxStreamedSound extends FlxSound
         {
             _time = 0;
             _paused = false;
+            #if (flixel >= "6.2.0")
             loopCount = 0;
+            #end
         }
     }
 

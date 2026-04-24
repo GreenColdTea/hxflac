@@ -6,6 +6,7 @@ import haxe.io.Bytes;
 import hxflac.openfl.FLACStreamedSound;
 import openfl.events.Event;
 
+#if FLX_STREAM_SOUND
 class FlxStreamedSound extends FlxSound
 {
     var _stream:FLACStreamedSound;
@@ -236,6 +237,7 @@ class FlxStreamedSound extends FlxSound
         }
     }
 
+    #if FLX_SOUND_SYSTEM
     override function onFocus():Void
     {
         if (_resumeOnFocus)
@@ -250,6 +252,7 @@ class FlxStreamedSound extends FlxSound
         _resumeOnFocus = !_paused && _channel != null;
         pause();
     }
+    #end
 
     override public function destroy():Void
     {
@@ -294,3 +297,4 @@ class FlxStreamedSound extends FlxSound
         return this;
     }
 }
+#end
